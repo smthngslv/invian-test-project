@@ -1,0 +1,103 @@
+x-common: &common
+  restart: always
+  logging:
+    options:
+      max-size: "10m"
+      max-file: "5"
+
+x-image: &image
+  build:
+    context: "./"
+    dockerfile: "./Dockerfile"
+  image: smthngslv/invian
+
+
+x-sensor: &sensor
+  <<: *image
+  command: "sensor"
+  environment:
+    - INVIAN_CONTROLLER_API_URL=http://controller:8000
+  depends_on:
+    - controller
+  <<: *common
+
+
+services:
+  controller:
+    <<: *image
+    container_name: invian-controller
+    command: "controller"
+    environment:
+      - INVIAN_REDIS_URL=redis://redis
+      - INVIAN_MONGODB_URL=mongodb://invian:invian@mongodb
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/docs" ]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    depends_on:
+      - mongodb
+      - redis
+    <<: *common
+
+  manipulator:
+    <<: *image
+    container_name: invian-manipulator
+    command: "manipulator"
+    environment:
+      - INVIAN_CONTROLLER_TCP_URL=tcp://controller:1111
+    depends_on:
+      - controller
+    <<: *common
+
+  sensor-1:
+    container_name: invian-sensor-1
+    <<: *sensor
+
+  sensor-2:
+    container_name: invian-sensor-2
+    <<: *sensor
+
+  sensor-3:
+    container_name: invian-sensor-3
+    <<: *sensor
+
+  sensor-4:
+    container_name: invian-sensor-4
+    <<: *sensor
+
+  sensor-5:
+    container_name: invian-sensor-5
+    <<: *sensor
+
+  sensor-6:
+    container_name: invian-sensor-6
+    <<: *sensor
+
+  sensor-7:
+    container_name: invian-sensor-7
+    <<: *sensor
+
+  sensor-8:
+    container_name: invian-sensor-8
+    <<: *sensor
+
+  redis:
+    image: redis:latest
+    container_name: invian-redis
+    ports:
+      - "6379:6379"
+    <<: *common
+
+  mongodb:
+    image: mongo:6
+    container_name: invian-mongo
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: invian
+      MONGO_INITDB_ROOT_PASSWORD: invian
+    ports:
+      - "27017:27017"
+    <<: *common
